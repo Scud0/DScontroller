@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" id="htmlElement">
+
+<head>
+    <title>Edit Instances</title>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bulma CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    <!-- custom CSS  -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+
+    <script src="{{ url_for('static', filename='scripts.js') }}" defer></script>
+
+</head>
+<body>
+    <div style="text-align: right;">
+        <a href="#" id="modeToggle">
+            <img src="{{ url_for('static', filename='LightDarkMode.webp') }}" alt="Toggle Mode" height="40" width="40">
+        </a>
+    </div>
+
+    <section class="section">
+        <div class="container">
+            <h1 class="title">Edit Instances</h1>
+            <p class="subtitle">You can add comments with # or //</p>
+            <form action="/save_instances" method="post">
+                <!-- Render formatted_data in the textarea -->
+                <div class="field">
+                    <div class="control">
+                        <textarea class="textarea" name="instances_data" spellcheck="false" rows="32" style="font-size: 12px; font-family: Courier New, sans-serif;">{{ formatted_data | safe }}</textarea>
+                    </div>
+                </div>
+
+                <div class="field is-grouped">
+                    <div class="control">
+                        <input class="button is-danger" type="submit" value="Save Instances">
+                    </div>
+                    <div class="control">
+                        <a href="/" class="button is-primary">Cancel</a>
+                </div>
+
+            </form>
+        </div>
+    </section>
+
+</body>
+</html>

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Link to Bulma CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    <!-- Add your custom CSS file if needed -->
+    <link rel="stylesheet" href="styles.css">
+
+
+    <title>DirectionalScalper Instances</title>
+    <style>
+        .dot {
+            height: 15px;
+            width: 15px;
+            background-color: grey;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .green {
+            background-color: green;
+        }
+        .red {
+            background-color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>DS Controller</h1>
+    v0.02 -=SCUD=-<br>
+    <br>select the instance<br>
+        <select id="instanceSelect">
+            <option value="">Select an instance</option> <!-- Default blank option -->
+            {% for instance in instances['instances'] %}
+                <option value="{{ instance['id'] }}">{{ instance['name'] }}</option>
+            {% endfor %}
+        </select>
+    <a href="/edit_instances"><button>EditInstances</button></a>
+    <br> bot status: <div id="statusIndicator" class="dot"></div>
+
+    <br><br>
+    config.json:<br>
+    <textarea id="configInput" spellcheck="false" rows="30" cols="120"></textarea>
+    <br>
+    <button onclick="confirmSaveJSON()">Save Config</button>
+    <br><br>
+    Start Command:<br>
+    <textarea id="commandLineInput" spellcheck="false" rows="1" cols="120"></textarea>
+    <br>
+    <button onclick="confirmRestartApplication()">(Re)Start DS</button>
+    <button onclick="confirmStopApplication()">Quit DS</button>
+    <br><br>
+    <button onclick="confirmUpdateApplication()">Update DS</button>
+    <br><br>
+    log:<br>
+    <textarea id="logTextarea" spellcheck="false" rows="10" cols="1000" style="width: 100%;"></textarea>
+    <br>
+
+
+    <script>
+
+        document.getElementById('instanceSelect').addEventListener('change', function() {
+            var instanceId = this.value;
+            if (instanceId) {
+                statusIndicator.classList.remove('green', 'red');
+                getData(instanceId);
+            } else {
+                statusIndicator.classList.remove('green', 'red');
+            }
+        });
+
+        function getData() {
+            var instanceId = document.getElementById('instanceSelect').value;
+
+            // Display "Fetching..." placeholder text
+            document.getElementById('configInput').value = 'Fetching...';
+            document.getElementById('commandLineInput').value = 'Fetching...';
+
+            // Set up a timeout promise
+            const timeoutPromise = new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    reject(new Error('Timeout')); // Reject the promise after 10 seconds
+                }, 10000); // 10 seconds timeout
+            });
+
+            // Race between the fetch request and the timeout promise
+            Promise.race([
+                timeoutPromise,
+                fetch('/get_data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'instance_id=' + instanceId
+                })
+                .then(response => response.json())
+                //.then(response => response.text()) //TEXT variant
+                .then(data => {
+                    // Assuming data is an object with two properties: config_data and commandline_data
+
+                    var configData = JSON.stringify(data.config_data, null, 2);
+                    //var configData = data.config_data; //TEXT variant
+                    var commandLineData = data.commandline_data ? data.commandline_data.replace(/["\n]/g, '') : ''; // Replace with empty string if data is undefined
+                    // document.getElementById('configInput').value = configData;
+                    document.getElementById('configInput').value = configData;
+                    document.getElementById('commandLineInput').value = commandLineData;
+
+                    //update statusIndicator
+                    var statusIndicator = document.getElementById('statusIndicator'); // Replace 'myStatusIndicator' with the actual ID of your status indicator element
+                    var BotActive = data.bot_status
+                    updateStatusIndicator(statusIndicator, BotActive);
+                })
+
+                .catch(error => {
+                    // Handle fetch errors
+                    console.error(error);
+                    document.getElementById('configInput').value = 'Failed to fetch data';
+                    document.getElementById('commandLineInput').value = 'Failed to fetch data';
+                    handleError(error)
+                })
+            ]);
+        }
+
+
+        function updateStatusIndicator(statusIndicator, BotActive) {
+            // Remove any existing classes
+            statusIndicator.classList.remove('green', 'red');
+
+            // Update the status indicator based on the value of bot_active
+            if (BotActive) {
+                statusIndicator.classList.add('green'); // Add green class to show active status
+            } else {
+                statusIndicator.classList.add('red'); // Add red class to show inactive status
+            }
+        }
+
+        function confirmSaveJSON() {
+                // Display a confirmation dialog
+                if (window.confirm('Are you sure you want to save the JSON?')) {
+                    // If the user clicks OK, call the restartApplication function
+                    saveJSON();
+                } else {
+                    // If the user clicks Cancel, do nothing
+                    console.log('canceled');
+                }
+            }
+
+        function saveJSON() {
+            var instanceId = document.getElementById('instanceSelect').value;
+            var json = document.getElementById('configInput').value;
+
+            fetch('/save_json', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'instance_id=' + instanceId + '&json=' + encodeURIComponent(json)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('JSON saved successfully!');
+                    handleSuccess()
+                } else {
+                    alert('Failed to save JSON: ' + data.error);
+                    handleError(error)
+                }
+            })
+            .catch(error => {
+                alert('Failed to parse JSON: ' + error.message);
+                handleError(error)
+            });
+        }
+
+
+        function confirmRestartApplication() {
+                // Display a confirmation dialog
+                if (window.confirm('Are you sure you want to (re)start?')) {
+                    // If the user clicks OK, call the restartApplication function
+                    restartApplication();
+                } else {
+                    // If the user clicks Cancel, do nothing
+                    console.log('canceled');
+                }
+            }
+
+        function restartApplication() {
+            var instanceId = document.getElementById('instanceSelect').value;
+            var commandLineData = document.getElementById('commandLineInput').value;
+            fetch('/restart_application', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'instance_id=' + instanceId + '&commandLineData=' + encodeURIComponent(commandLineData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    //alert('StartCommand saved en DS (re)started successfully');
+                    getData(instanceId)
+                    handleSuccess()
+
+                } else {
+                    alert('Failed to restart application: ' + data.error);
+                    handleError(error)
+                }
+            });
+        }
+
+        function confirmStopApplication() {
+                // Display a confirmation dialog
+                if (window.confirm('Are you sure you want to stop?')) {
+                    // If the user clicks OK, call the restartApplication function
+                    StopApplication();
+                } else {
+                    // If the user clicks Cancel, do nothing
+                    console.log('canceled');
+                }
+            }
+
+        function StopApplication() {
+            var instanceId = document.getElementById('instanceSelect').value;
+            var commandLineData = document.getElementById('commandLineInput').value;
+            fetch('/stop_application', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'instance_id=' + instanceId
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    //alert('StopCommand successfully');
+                    getData(instanceId)
+                    handleSuccess()
+
+                } else {
+                    alert('Failed to stop application: ' + data.error);
+                    handleError(error)
+                }
+            });
+        }
+
+
+        function confirmUpdateApplication() {
+                // Display a confirmation dialog
+                if (window.confirm('Are you sure you want to update?')) {
+                    // If the user clicks OK, call the restartApplication function
+                    updateApplication();
+                } else {
+                    // If the user clicks Cancel, do nothing
+                    console.log('canceled');
+                }
+            }
+
+        function updateApplication() {
+            var instanceId = document.getElementById('instanceSelect').value;
+            fetch('/update_application', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'instance_id=' + instanceId
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    //alert('Git pull successful!');
+                    handleSuccess();
+                } else {
+                    alert('Failed to perform git pull: ' + data.error);
+                    handleError(error)
+                }
+            });
+        }
+
+
+        // Function to fetch log file contents from the server and update the textbox
+        function updateLog() {
+            fetch('/get_log')
+                .then(response => response.text())
+                .then(data => {
+                    // Update the contents of the log textbox
+                    document.getElementById('logTextarea').value = data;
+                })
+                .catch(error => {
+                    console.error('Error fetching log:', error);
+                });
+        }
+
+        // Call the updateLog function when the page loads
+        //window.onload = updateLog;
+
+        // Function to handle successful operation
+        function handleSuccess() {
+            // Update the log textbox after a successful operation
+            updateLog();
+        }
+
+        // Function to handle error
+        function handleError(error) {
+            // Update the log textbox after an error
+            console.error('Error:', error);
+            // Update the log textbox
+            updateLog();
+        }
+
+        // Call the updateLog function when the page loads
+        window.onload = updateLog;
+
+
+    </script>
+
+    </script>
+</body>
+</html>
+

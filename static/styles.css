@@ -1,0 +1,39 @@
+.dot {
+    height: 15px;
+    width: 15px;
+    background-color: grey;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.green {
+    background-color: green;
+}
+
+.red {
+    background-color: red;
+}
+
+.custom-button-width {
+    width: 125px; /* Adjust the width as needed */
+}
+
+
+/* instanceselector font and font size */
+#instanceSelect, #instanceSelect option {
+    font-size: 12px;
+    font-family: Courier New, sans-serif;
+}
+
+/* Custom styling for the default option */
+#instanceSelect option:checked {
+    color: #6e6e6e; /* Adjust the color to your preference */
+}
+
+
+/*part for the blinking update button*/
+@keyframes blinking {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 1; }
+}

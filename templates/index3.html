@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en" id="htmlElement">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bulma CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    <!-- custom CSS  -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+
+    <script src="{{ url_for('static', filename='scripts.js') }}" defer></script>
+
+<!--TODO-->
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <!-- and it's easy to individually load additional languages -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+
+
+
+
+    <title>DS Controller</title>
+</head>
+
+<body>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; height: 10vh;">
+        <div style="flex-grow: 1; display: flex; justify-content: center;">
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <h1 class="title">DS Controller</h1>
+                <p>v0.05 -=SCUD=-</p>
+            </div>
+        </div>
+
+        <div style="text-align: right;">
+            <a href="#" id="modeToggle">
+                <img src="{{ url_for('static', filename='LightDarkMode.webp') }}" height="40" width="40">
+            </a>
+        </div>
+    </div>
+
+    <section class="section">
+        <div class="container">
+            <div style="display: flex;">
+                <div style="flex: 1;">
+                    <br>
+
+                    <p>select the instance</p>
+                    <div class="select">
+                        <select id="instanceSelect">
+                            <option value="">Select an instance</option>
+                            <!-- Default blank option -->
+                            {% for instance in instances['instances'] %}
+                            <option value="{{ instance['id'] }}">{{ instance['name'] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <br>
+                    <p>bot status: <span id="statusIndicator" class="dot"></span></p>
+
+                    <br><br>
+
+                    <h2 class="subtitle">Start Command</h2>
+                    <textarea id="commandLineInput" class="textarea" spellcheck="false" rows="2" cols="120"
+                        placeholder="Start Command will be displayed here" style="width: 100%; font-size: 12px; font-family: Courier New, sans-serif;"></textarea>
+
+
+                    <br><br><br>
+
+                    <h2 class="subtitle">Log</h2>
+                    <textarea id="logTextarea" class="textarea" spellcheck="false" rows="15" cols="1000"
+                        style="width: 100%; font-size: 10px; font-family: Courier New, sans-serif white-space: nowrap;" placeholder="Log will be displayed here" readonly></textarea>
+                </div>
+
+                <div style="flex: 1;">
+
+                    <h2 class="subtitle">Config</h2>
+                    <textarea id="configInput" class="textarea" spellcheck="false" rows="34" cols="120" placeholder="Config.json will be displayed here" style="width: 100%; font-size: 11px; font-family: Courier New, sans-serif;"></textarea>
+                </div>
+
+            </div>
+
+            <div style="text-align: center;">
+                <button class="button is-success" onclick="confirmRestartApplication()">Start DS</button>
+                <button class="button is-danger" onclick="confirmStopApplication()">Quit DS</button>
+                <button class="button is-primary" onclick="confirmUpdateApplication()">Update DS</button>
+                <button class="button is-primary" onclick="confirmSaveJSON()">Save Config</button>
+                <a href="/edit_instances" class="button is-primary">Edit Instances</a>
+            </div>
+        </div>
+    </section>
+
+<a href="https://raw.githubusercontent.com/donewiththedollar/directionalscalper/main/configs/config_example.json">latest example_config.json</a>
+</body>
+</html>

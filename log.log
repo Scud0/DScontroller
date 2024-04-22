@@ -1,0 +1,2 @@
+2024-04-22 16:59:04 - test001 - ssh_connect: using keyfile logon with class: <class 'paramiko.rsakey.RSAKey'> 
+2024-04-22 16:59:04 - test001 - get_data: ERROR [Errno 2] No such file 
