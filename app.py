@@ -179,7 +179,7 @@ def save_json():
 @app.route('/restart_application', methods=['POST'])
 def restart_application():
     """
-    1. #TODO: match Startcommand commandlineData against instance[ds_start_command]. if not equal, update config.hjson.
+    1. match Startcommand commandlineData against instance[ds_start_command]. if not equal, update config.hjson.
     2. def stop_application
     3. def verify_application_active
     4. def start_application
@@ -195,8 +195,6 @@ def restart_application():
     if instance:
         try:
             write_to_log(log_file, "(re)start_application: restarting, hold on", instance)
-
-
             """
             1. check if commandlineData is equal to instance['ds_start_command'].
             2.1 if not. save into config.hjson.

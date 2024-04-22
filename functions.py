@@ -8,12 +8,6 @@ import re
 import hjson
 from datetime import datetime
 
-# from io import StringIO
-# from paramiko import RSAKey, Ed25519Key, ECDSAKey, DSSKey, PKey
-# from cryptography.hazmat.primitives import serialization as crypto_serialization
-# from cryptography.hazmat.primitives.asymmetric import ed25519, dsa, rsa, ec
-
-
 # Load instances from config.hjson
 def load_instances():
     try:
@@ -21,9 +15,8 @@ def load_instances():
             instances_ordered = hjson.load(file)
         return json.loads(json.dumps(instances_ordered))
     except FileNotFoundError:
-        print("Error: HJSON file not found.")
+        #print("Error: HJSON file not found.")
         return []
-        #return jsonify({'success': False, 'error': "Error: HJSON file not found."})
 
 def write_to_log(log_file, message, instance="none"):
     now = datetime.now()
@@ -179,7 +172,6 @@ def func_stop_application(exec_client, instance, log_file):
         #logging.warning('killcmd:' + killcmd)
         stdin, stdout, stderr = exec_client.exec_command(f"{killcmd}")
         time.sleep(1)
-
 
 def func_start_application(exec_client, instance, bot_active, log_file, commandlineData):
     #start bot
