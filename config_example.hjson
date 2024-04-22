@@ -10,6 +10,7 @@
       "ssh_keyfile": "",
       "tmux_window_name": "directionalscalper",
       "tmux_pane_name": "DS",
+      "venv_start_command": "", #empty to disable. i.e: "source myenv/bin/activate" or "conda activate myenv"
       "ds_location": "", #full path
       "ds_config_file": "", #full path
       "ds_start_command": "python3.11 multi_bot.py --exchange bybit --account_name bybit01 --strategy basicgridbufferedqs"
@@ -24,6 +25,7 @@
       "ssh_keyfile": "",
       "tmux_window_name": "directionalscalper",
       "tmux_pane_name": "DS",
+      "venv_start_command": "", #empty to disable. i.e: "source myenv/bin/activate" or "conda activate myenv"
       "ds_location": "", #full path
       "ds_config_file": "", #full path
       "ds_start_command": "python3.11 multi_bot.py --exchange bybit --account_name bybit01 --strategy basicgridbufferedqs"

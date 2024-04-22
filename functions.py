@@ -8,10 +8,10 @@ import re
 import hjson
 from datetime import datetime
 
-from io import StringIO
-from paramiko import RSAKey, Ed25519Key, ECDSAKey, DSSKey, PKey
-from cryptography.hazmat.primitives import serialization as crypto_serialization
-from cryptography.hazmat.primitives.asymmetric import ed25519, dsa, rsa, ec
+# from io import StringIO
+# from paramiko import RSAKey, Ed25519Key, ECDSAKey, DSSKey, PKey
+# from cryptography.hazmat.primitives import serialization as crypto_serialization
+# from cryptography.hazmat.primitives.asymmetric import ed25519, dsa, rsa, ec
 
 
 # Load instances from config.hjson
@@ -38,38 +38,6 @@ def write_to_log(log_file, message, instance="none"):
 
     log_file.flush()  # Flush the buffer after writing each line
 
-# def load_private_key(keyfile_path):
-#     """
-#     Load the private key from the specified key file.
-#     Supports both RSA and Ed25519 key types.
-#     """
-#     # Determine the key type based on the file path
-#     if keyfile_path.endswith('.pub'):
-#         keyfile_path = keyfile_path[:-4]  # Remove .pub extension if present
-#
-#     # Load the private key
-#     with open(keyfile_path, 'r') as key_file:
-#         key_data = key_file.read()
-#
-#         # Determine the key type
-#         if 'BEGIN RSA PRIVATE KEY' in key_data:
-#             key_type = 'RSA'
-#         elif 'BEGIN OPENSSH PRIVATE KEY' in key_data:
-#             key_type = 'Ed25519'
-#         else:
-#             raise ValueError("Unsupported key type")
-#
-#         # Load the private key based on the key type
-#         if key_type == 'RSA':
-#             private_key = paramiko.RSAKey.from_private_key_file(keyfile_path)
-#         elif key_type == 'Ed25519':
-#             private_key = paramiko.Ed25519Key(filename=keyfile_path)
-#         else:
-#             raise ValueError("Unsupported key type")
-#
-#     return private_key
-
-
 
 def determine_keyfile_type(instance, log_file, password=None):
     key_classes = [paramiko.RSAKey, paramiko.Ed25519Key, paramiko.ECDSAKey, paramiko.DSSKey]
@@ -87,7 +55,9 @@ def determine_keyfile_type(instance, log_file, password=None):
             pass
 
     if not private_key:
-        raise ValueError("Unsupported key type or invalid key file.")
+        message = (f"ssh_connect: ERROR: Unsupported key type or invalid key file")
+        write_to_log(log_file, message, instance)
+        return jsonify({'success': False, 'error': 'Unsupported key type or invalid key file'})
 
     return private_key, key_class
 
@@ -214,6 +184,7 @@ def func_stop_application(exec_client, instance, log_file):
 def func_start_application(exec_client, instance, bot_active, log_file, commandlineData):
     #start bot
     if not bot_active:
+        #set tmux settings
         stdin, stdout, stderr = exec_client.exec_command(f"tmux set -g remain-on-exit on")
         for line in stdout:
             message = (f"restart_application: {line.strip()}\n")
@@ -222,6 +193,8 @@ def func_start_application(exec_client, instance, bot_active, log_file, commandl
             message = (f"err restart_application: {line.strip()}\n")
             write_to_log(log_file, message, instance)
         time.sleep(1)
+
+        #create new tmux window
         stdin, stdout, stderr = exec_client.exec_command(f"tmux new-session -d -s {instance['tmux_window_name']}")
         for line in stdout:
             message = (f"restart_application: {line.strip()}\n")
@@ -230,14 +203,9 @@ def func_start_application(exec_client, instance, bot_active, log_file, commandl
             message = (f"err restart_application: {line.strip()}\n")
             write_to_log(log_file, message, instance)
         time.sleep(1)
+
+        #create new tmux pane
         newcmd = f"tmux new-window -t {instance['tmux_window_name']} -n {instance['tmux_pane_name']} -d -c {instance['ds_location']}"
-
-        #TODO kill or rename the default pane
-        #renamecmd = f"tmux send-keys -t {instance['tmux_window_name']}:bash C-b , rename-window {instance['tmux_pane_name']} Enter"
-
-        #start in the pane
-        startcmd = f"tmux send -t {instance['tmux_window_name']}:{instance['tmux_pane_name']} 'bash -c \"{commandlineData}\"' ENTER"
-        #print (startcmd)
 
         stdin, stdout, stderr = exec_client.exec_command(f"{newcmd}")
         for line in stdout:
@@ -246,17 +214,35 @@ def func_start_application(exec_client, instance, bot_active, log_file, commandl
         for line in stderr:
             message = (f"err restart_application: {line.strip()}\n")
             write_to_log(log_file, message, instance)
+        time.sleep(1)
 
-        time.sleep(2)
+        #do stuff when venv start command is filled
+        if instance['venv_start_command']:
+            venvstartcmd = f"tmux send -t {instance['tmux_window_name']}:{instance['tmux_pane_name']} 'bash -c \"{instance['venv_start_command']}\"' ENTER"
+
+            stdin, stdout, stderr = exec_client.exec_command(f"{venvstartcmd}")
+            for line in stdout:
+                message = (f"restart_application: {line.strip()}\n")
+                write_to_log(log_file, message, instance)
+            for line in stderr:
+                message = (f"err restart_application: {line.strip()}\n")
+                write_to_log(log_file, message, instance)
+            time.sleep(1)
+
+#TODO kill or rename the default pane
+        #renamecmd = f"tmux send-keys -t {instance['tmux_window_name']}:bash C-b , rename-window {instance['tmux_pane_name']} Enter"
+
+        #start bot in the pane
+        startcmd = f"tmux send -t {instance['tmux_window_name']}:{instance['tmux_pane_name']} 'bash -c \"{commandlineData}\"' ENTER"
+
         stdin, stdout, stderr =exec_client.exec_command(f"{startcmd}")
-        time.sleep(2)
-
         for line in stdout:
             message = (f"restart_application: {line.strip()}\n")
             write_to_log(log_file, message, instance)
         for line in stderr:
             message = (f"err restart_application: {line.strip()}\n")
             write_to_log(log_file, message, instance)
+        time.sleep(1)
 
 def verify_application_active(exec_client, instance, log_file):
     #verify if no proces of the bot is stil running
