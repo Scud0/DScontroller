@@ -1,3 +1,4 @@
 config.hjson
 /__pycache__/
 *.pub
+log.log
