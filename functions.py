@@ -143,7 +143,7 @@ def ssh_connect(instance, log_file, sftp_client=None, exec_client=None, ):
 
 def close_ssh_connect(sftp_client,exec_client):
         sftp_client.close()
-        ssh_client.close()
+        exec_client.close()
 
 def check_bot_running(exec_client, instance):
     #verify if a proces of the bot is running

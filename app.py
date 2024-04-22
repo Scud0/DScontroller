@@ -34,7 +34,12 @@ DONE: FEAT: close ssh connection: why doesnt this work?
 app = Flask(__name__)
 
 # Open the log file in append mode
-log_file = open('log.log', 'a')
+try:
+    # Open the log file in append mode
+    log_file = open('log.log', 'a+')
+except FileNotFoundError:
+    # If the file doesn't exist, create it
+    log_file = open('log.log', 'w+')
 
 @app.route('/')
 def index():
@@ -62,9 +67,15 @@ def get_data():
 
             bot_active = check_bot_running(exec_client, instance)
 
-            config_file_path = instance['ds_config_file']
-            with sftp_client.open(config_file_path, 'r') as file:
-                config_data = json.load(file)
+            try:
+                config_file_path = instance['ds_config_file']
+                with sftp_client.open(config_file_path, 'r') as file:
+                    config_data = json.load(file)
+            except Exception as e:
+                message = (f"get_data: ERROR: I could not find the specified config file [ds_config_file]")
+                write_to_log(log_file, message, instance)
+                close_ssh_connect(sftp_client,exec_client)
+                return jsonify({'error': 'config file not found'})
 
             commandline_data = instance['ds_start_command']
 
@@ -91,7 +102,7 @@ def get_data():
             return jsonify({'error': str(e)})
 
     else:
-        message = (f"get_data: ERROR {str(e)}")
+        message = (f"get_data: ERROR1 {str(e)}")
         write_to_log(log_file, message, instance)
 
         close_ssh_connect(sftp_client,exec_client)
