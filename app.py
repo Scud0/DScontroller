@@ -9,28 +9,6 @@ import re
 import hjson
 from datetime import datetime
 
-
-#TODO: v0.2:
-"""
-TODO: FEAT: run all in a venv? -> see discord poll results
-TODO: FEAT: rename or kill the bash tmux window into tmux_pane_name ?
-TODO: BUG: issue after saving instances config, duplicate log lines.
-"""
-
-# DONE v0.1:
-"""
-DONE: FEAT: start_application:  commandlineData against instance[ds_start_command]. if not equal, update config.hjson.
-DONE: BUG: something wrong with passing the selected instance. its always executed on the first instance
-DONE: FEAT: check installed git version against remote git version and display update notification? -> function  done.
-DONE: BUG: broke update. it triggers a failed, bot python console says all ok
-DONE: FEAT: ssh_connect: keyfile
-DONE: FEAT: log textbox always bottom
-DONE: FEAT: remove redundancy, create functions.
-DONE: FEAT: new install and config.hjson isnt present
-DONE: FEAT: ssh_close: need to close it sometime?
-DONE: FEAT: close ssh connection: why doesnt this work?
-"""
-
 app = Flask(__name__)
 
 # Open the log file in append mode
