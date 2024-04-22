@@ -7,6 +7,7 @@ import time
 import re
 import hjson
 from datetime import datetime
+import ast
 
 # Load instances from config.hjson
 def load_instances():
@@ -227,7 +228,7 @@ def func_start_application(exec_client, instance, bot_active, log_file, commandl
         #start bot in the pane
         startcmd = f"tmux send -t {instance['tmux_window_name']}:{instance['tmux_pane_name']} 'bash -c \"{commandlineData}\"' ENTER"
 
-        stdin, stdout, stderr =exec_client.exec_command(f"{startcmd}")
+        stdin, stdout, stderr = exec_client.exec_command(f"{startcmd}")
         for line in stdout:
             message = (f"restart_application: {line.strip()}\n")
             write_to_log(log_file, message, instance)
@@ -296,3 +297,36 @@ def update_ds_start_command(instance, commandlineData, log_file):
 
     return jsonify({'success': True})
 
+def find_strategies_in_multibot(instance, exec_client, log_file):
+    # Initialize an empty list to store the strategies
+    strategies = []
+
+    multibotfile = f"{instance['ds_location']}multi_bot.py"
+
+
+
+    # Execute the command to read the file contents
+    _, stdout, _ = exec_client.exec_command(f"cat {multibotfile}")
+
+    # Read the output from the command
+    file_contents = stdout.read().decode('utf-8')  # Decode bytes to string
+
+    tree = ast.parse(file_contents, filename=multibotfile)
+
+    # Define a visitor to traverse the AST and find the desired function
+    class FunctionVisitor(ast.NodeVisitor):
+        def visit_FunctionDef(self, node):
+            if node.name == 'get_available_strategies':
+                # If the function is found, extract the strategies
+                for statement in node.body:
+                    if isinstance(statement, ast.Return):
+                        if isinstance(statement.value, ast.List):
+                            for element in statement.value.elts:
+                                if isinstance(element, ast.Str):
+                                    strategies.append(element.s)
+
+    # Visit the AST using the FunctionVisitor
+    visitor = FunctionVisitor()
+    visitor.visit(tree)
+
+    return strategies

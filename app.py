@@ -61,6 +61,10 @@ def get_data():
 
             update_available = verify_application_version(exec_client, instance, log_file)
 
+            strategies = find_strategies_in_multibot(instance, exec_client, log_file)
+            message = (f"get_data: available strategies: {strategies}")
+            write_to_log(log_file, message, instance)
+
             # Serialize the data without sorting keys
             response_data = json.dumps({'config_data': config_data, 'commandline_data': commandline_data, 'bot_status': bot_active, 'update_available': update_available}, indent=2, sort_keys=False)
 
