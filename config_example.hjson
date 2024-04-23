@@ -3,31 +3,31 @@
     {
       "id": 1,
       "name": "your_description",
-      "ssh_host": "", # IP
+      "ssh_host": "",                             # IP
       "ssh_port": "",
       "ssh_user": "",
-      "ssh_pass": "", #keyfile has priority
+      "ssh_pass": "",                             # keyfile has priority
       "ssh_keyfile": "",
       "tmux_window_name": "directionalscalper",
       "tmux_pane_name": "DS",
-      "venv_start_command": "", #empty to disable. i.e: "source myenv/bin/activate" or "conda activate myenv"
-      "ds_location": "", #full path
-      "ds_config_file": "", #full path
+      "venv_start_command": "",                   # empty to disable. i.e: "source myenv/bin/activate" or "conda activate myenv"
+      "ds_location": "",                          # full path
+      "ds_config_file": "",                       # full path
       "ds_start_command": "python3.11 multi_bot.py --exchange bybit --account_name bybit01 --strategy basicgridbufferedqs"
     },
     {
       "id": 2,
       "name": "your_description",
-      "ssh_host": "", # IP
+      "ssh_host": "",                             # IP
       "ssh_port": "",
       "ssh_user": "",
-      "ssh_pass": "", #keyfile has priority
+      "ssh_pass": "",                             # keyfile has priority
       "ssh_keyfile": "",
       "tmux_window_name": "directionalscalper",
       "tmux_pane_name": "DS",
-      "venv_start_command": "", #empty to disable. i.e: "source myenv/bin/activate" or "conda activate myenv"
-      "ds_location": "", #full path
-      "ds_config_file": "", #full path
+      "venv_start_command": "",                   # empty to disable. i.e: "source myenv/bin/activate" or "conda activate myenv"
+      "ds_location": "",                          # full path
+      "ds_config_file": "",                       # full path
       "ds_start_command": "python3.11 multi_bot.py --exchange bybit --account_name bybit01 --strategy basicgridbufferedqs"
     }
   ]
