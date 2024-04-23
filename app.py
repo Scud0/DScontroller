@@ -61,6 +61,8 @@ def get_data():
 
             update_available = verify_application_version(exec_client, instance, log_file)
 
+            #update_available = True #debug
+
             strategies = find_strategies_in_multibot(instance, exec_client, log_file)
             message = (f"get_data: available strategies: {strategies}")
             write_to_log(log_file, message, instance)
@@ -299,7 +301,11 @@ def update_application():
 
             compare_config_files(instance, message,log_file)
 
+            get_data() #reload data after update
+
             write_to_log(log_file, f"update_application: update done", instance)
+            write_to_log(log_file, f"update_application: don't forget to (re)start)", instance)
+
             return jsonify({'success': True})
         except Exception as e:
             write_to_log(log_file, f"update_application: ERROR: {str(e)}", instance)
