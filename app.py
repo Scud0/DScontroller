@@ -235,7 +235,10 @@ def restart_application():
                 write_to_log(log_file, message, instance)
                 return jsonify({'success': False, 'error': 'I was unable to start the bot. Check manually'})
 
+            message = (f"(re)start_application: succesfully (re)started the application")
+            write_to_log(log_file, message, instance)
             return jsonify({'success': True})
+
         except Exception as e:
             write_to_log(log_file, f"(re)start_application: ERROR: {str(e)}", instance)
             return jsonify({'success': False, 'error': str(e)})
