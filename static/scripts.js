@@ -393,3 +393,6 @@ function handleError(error) {
 
 // Call the updateLog function when the page loads
 window.onload = updateLog;
+// also updateLog() every minute
+setInterval(updateLog, 60000); // 60000 milliseconds = 1 minute
+
