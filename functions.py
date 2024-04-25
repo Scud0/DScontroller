@@ -72,16 +72,16 @@ def ssh_connect(instance, log_file):
         # Check if the selected instance matches the currently connected instance
         if connected_instance == instance:
             # Return True to indicate that the connection is already established
-            #message = (f"ssh_connect: reusing already open connection with {instance['name']}")
-            #write_to_log(log_file, message, instance)
             message = (f"ssh_connect: reusing existing ssh connection to {instance['name']}")
             write_to_log(log_file, message, instance)
             return sftp_client, exec_client
-        #print('test')
 
-        #rint (private_key)
+        elif connected_instance: #it has data, but not equal to currently selected instance
+            #close the old connection
+            #print ('close')
+            close_ssh_connect(sftp_client,exec_client,log_file)
 
-        #print (instance)
+        #start a new connection
         ssh_client = paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
@@ -129,10 +129,15 @@ def ssh_connect(instance, log_file):
 
     return sftp_client, exec_client
 
-def close_ssh_connect(sftp_client,exec_client):
+def close_ssh_connect(sftp_client,exec_client,log_file):
+    try:
         sftp_client.close()
         exec_client.close()
         globals.connected_instance = None
+    except Exception as e:
+        message = (f"close_ssh_connect: ERROR {str(e)}")
+        write_to_log(log_file, message)
+        return jsonify({'success': False, 'error': str(e)})
 
 def check_bot_running(exec_client, instance):
     #verify if a proces of the bot is running
