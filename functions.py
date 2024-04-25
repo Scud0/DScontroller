@@ -8,6 +8,13 @@ import re
 import hjson
 from datetime import datetime
 import ast
+import globals
+
+
+# import ALL, because of globals.
+# Global variables to store SSH clients
+sftp_client = None
+exec_client = None
 
 # Load instances from config.hjson
 def load_instances():
@@ -55,8 +62,21 @@ def determine_keyfile_type(instance, log_file, password=None):
 
     return private_key, key_class
 
-def ssh_connect(instance, log_file, sftp_client=None, exec_client=None, ):
+#def ssh_connect(instance, log_file, sftp_client=None, exec_client=None, ):
+def ssh_connect(instance, log_file):
+    global sftp_client, exec_client
+
+
     try:
+        connected_instance = globals.connected_instance
+        # Check if the selected instance matches the currently connected instance
+        if connected_instance == instance:
+            # Return True to indicate that the connection is already established
+            #message = (f"ssh_connect: reusing already open connection with {instance['name']}")
+            #write_to_log(log_file, message, instance)
+            message = (f"ssh_connect: reusing existing ssh connection to {instance['name']}")
+            write_to_log(log_file, message, instance)
+            return sftp_client, exec_client
         #print('test')
 
         #rint (private_key)
@@ -98,6 +118,10 @@ def ssh_connect(instance, log_file, sftp_client=None, exec_client=None, ):
 
         sftp_client = ssh_client.open_sftp()
         exec_client = ssh_client
+        globals.connected_instance = instance
+
+        #return True
+
     except Exception as e:
         message = (f"ssh_connect: ERROR {str(e)}")
         write_to_log(log_file, message, instance)
@@ -108,6 +132,7 @@ def ssh_connect(instance, log_file, sftp_client=None, exec_client=None, ):
 def close_ssh_connect(sftp_client,exec_client):
         sftp_client.close()
         exec_client.close()
+        globals.connected_instance = None
 
 def check_bot_running(exec_client, instance):
     #verify if a proces of the bot is running

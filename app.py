@@ -8,6 +8,7 @@ import time
 import re
 import hjson
 from datetime import datetime
+import globals
 
 app = Flask(__name__)
 
@@ -18,6 +19,8 @@ try:
 except FileNotFoundError:
     # If the file doesn't exist, create it
     log_file = open('log.log', 'w+')
+
+
 
 @app.route('/')
 def index():
@@ -80,6 +83,7 @@ def get_data():
 
             try:
                 close_ssh_connect(sftp_client,exec_client)
+
             except:
                 pass
 
@@ -129,7 +133,7 @@ def save_json():
                 instance_id = int(request.form['instance_id'])
                 instance = next((inst for inst in bot_instances['instances'] if inst['id'] == instance_id), None)
 
-                sftp_client, exec_client = ssh_connect(instance, log_file)
+                sftp_client, exec_client = ssh_connect(instance, log_file, globals.connected_instance)
 
                 config_file_path = instance['ds_config_file']
                 with sftp_client.open(config_file_path, 'w') as file:
@@ -216,7 +220,7 @@ def restart_application():
             #     print (commandlineData)
 
             #open connection to vps
-            sftp_client, exec_client = ssh_connect(instance, log_file)
+            sftp_client, exec_client = ssh_connect(instance, log_file, globals.connected_instance)
             #time.sleep(60)
 
             func_stop_application(exec_client, instance, log_file)
@@ -256,7 +260,7 @@ def stop_application():
         try:
             write_to_log(log_file, "stop_application: stopping, hold on", instance)
             #open connection to vps
-            sftp_client, exec_client = ssh_connect(instance, log_file)
+            sftp_client, exec_client = ssh_connect(instance, log_file, globals.connected_instance)
 
             func_stop_application(exec_client, instance, log_file)
 
@@ -282,7 +286,7 @@ def update_application():
     instance = next((inst for inst in bot_instances['instances'] if inst['id'] == instance_id), None)
     if instance:
         try:
-            sftp_client, exec_client = ssh_connect(instance, log_file)
+            sftp_client, exec_client = ssh_connect(instance, log_file, globals.connected_instance)
 
             # SSH command to perform git pull
             git_pull_command = f"cd {instance['ds_location']} && git pull"
