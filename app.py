@@ -9,6 +9,7 @@ import re
 import hjson
 from datetime import datetime
 import globals
+import sched
 
 app = Flask(__name__)
 
@@ -45,9 +46,10 @@ def get_data():
     if instance:
         try:
             sftp_client, exec_client = ssh_connect(instance, log_file)
+            #print('1')
 
             bot_active = check_bot_running(exec_client, instance)
-
+            #print('2')
             try:
                 config_file_path = instance['ds_config_file']
                 with sftp_client.open(config_file_path, 'r') as file:
@@ -55,7 +57,7 @@ def get_data():
             except Exception as e:
                 message = (f"get_data: ERROR: I could not find the specified config file [ds_config_file]")
                 write_to_log(log_file, message, instance)
-                close_ssh_connect(sftp_client,exec_client)
+                close_ssh_connect(log_file)
                 return jsonify({'error': 'config file not found'})
 
             commandline_data = instance['ds_start_command']
@@ -63,7 +65,7 @@ def get_data():
             #close_ssh_connect(sftp_client,exec_client)
 
             update_available = verify_application_version(exec_client, instance, log_file)
-
+            #print('3')
             #update_available = True #debug
 
             strategies = find_strategies_in_multibot(instance, exec_client, log_file)
@@ -78,11 +80,11 @@ def get_data():
             return Response(response_data, content_type='application/json')
 
         except Exception as e:
-            message = (f"get_data: ERROR {str(e)}")
+            message = (f"get_data: ERROR3 {str(e)}")
             write_to_log(log_file, message, instance)
 
             try:
-                close_ssh_connect(sftp_client,exec_client)
+                close_ssh_connect(log_file)
 
             except:
                 pass
@@ -93,7 +95,7 @@ def get_data():
         message = (f"get_data: ERROR1 {str(e)}")
         write_to_log(log_file, message, instance)
 
-        close_ssh_connect(sftp_client,exec_client)
+        close_ssh_connect(log_file)
         return jsonify({'error': 'Instance not found'})
 
 @app.route('/get_config', methods=['POST'])

@@ -9,12 +9,19 @@ import hjson
 from datetime import datetime
 import ast
 import globals
+import sched
+import threading
+
 
 
 # import ALL, because of globals.
 # Global variables to store SSH clients
 sftp_client = None
 exec_client = None
+log_file = open('log.log', 'a+')
+
+# Create a scheduler
+scheduler = sched.scheduler(time.time, time.sleep)
 
 # Load instances from config.hjson
 def load_instances():
@@ -27,6 +34,7 @@ def load_instances():
         return []
 
 def write_to_log(log_file, message, instance="none"):
+    log_file = log_file
     now = datetime.now()
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
     #print (instance)
@@ -66,7 +74,6 @@ def determine_keyfile_type(instance, log_file, password=None):
 def ssh_connect(instance, log_file):
     global sftp_client, exec_client
 
-
     try:
         connected_instance = globals.connected_instance
         # Check if the selected instance matches the currently connected instance
@@ -79,7 +86,8 @@ def ssh_connect(instance, log_file):
         elif connected_instance: #it has data, but not equal to currently selected instance
             #close the old connection
             #print ('close')
-            close_ssh_connect(sftp_client,exec_client,log_file)
+            #close_ssh_connect(sftp_client,exec_client,log_file)
+            close_ssh_connect(log_file)
 
         #start a new connection
         ssh_client = paramiko.SSHClient()
@@ -121,23 +129,60 @@ def ssh_connect(instance, log_file):
         globals.connected_instance = instance
 
         #return True
+        try:
+            initiate_ssh_timeout_monitor(120, instance)
+        except Exception as e:
+            write_to_log(log_file, "timeout monitor error", instance)
+            print(f'timeout monitor error: {str(e)}')
 
     except Exception as e:
-        message = (f"ssh_connect: ERROR {str(e)}")
+        message = (f"ssh_connect: ERROR2 {str(e)}")
         write_to_log(log_file, message, instance)
         return jsonify({'success': False, 'error': str(e)})
 
     return sftp_client, exec_client
 
-def close_ssh_connect(sftp_client,exec_client,log_file):
+# Define a function to schedule the SSH connection closure
+def schedule_ssh_connection_closure(timeout, instance):
+    scheduler.enter(timeout, 1, close_ssh_connect)
+    write_to_log(log_file, f"SSH connection will be closed after {timeout} seconds of inactivity", instance)
+    #print(f"SSH connection will be closed after {timeout} seconds.")
+
+# Define a function to start the scheduler in a separate thread
+def start_scheduler(timeout, instance):
+    # Schedule the SSH connection closure
+    schedule_ssh_connection_closure(timeout, instance)
+    # Start the scheduler
+    scheduler.run()
+
+# Call this function whenever you establish a new SSH connection
+def initiate_ssh_timeout_monitor(timeout, instance):
+    # Create a new thread for the scheduler
+    thread = threading.Thread(target=start_scheduler, args=(timeout, instance,))
+    # Set the thread as a daemon so it terminates when the main thread exits
+    thread.daemon = True
+    # Start the thread
+    thread.start()
+
+def close_ssh_connect():
     try:
-        sftp_client.close()
-        exec_client.close()
+        if sftp_client:
+            sftp_client.close()
+        if exec_client:
+            exec_client.close()
+
+        instance = globals.connected_instance
+
+        write_to_log(log_file, f"SSH connection closed", instance)
+
         globals.connected_instance = None
+        #print ('closed ssh connection')
+        #return jsonify({'success': True}) #not allowed by flask to return outside application context.
+
     except Exception as e:
         message = (f"close_ssh_connect: ERROR {str(e)}")
         write_to_log(log_file, message)
-        return jsonify({'success': False, 'error': str(e)})
+        #return jsonify({'success': False, 'error': str(e)}) #not allowed by flask to return outside application context.
 
 def check_bot_running(exec_client, instance):
     #verify if a proces of the bot is running
