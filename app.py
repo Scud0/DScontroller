@@ -295,12 +295,15 @@ def update_application():
                 message = (f"update_Application: {line.strip()}")
                 write_to_log(log_file, message, instance)
                 print("out:", line.strip())
-            # for line in stderr:
-            #     #logger.critical(f"Error: {line.strip()}")
-            #     message = (f"ERROR: update_Application: {line.strip()}")
-            #     write_to_log(log_file, message, instance)
-            #
-            #     print("err:", line.strip())
+
+            for line in stderr:
+                #logger.critical(f"Error: {line.strip()}")
+                message = (f"ERROR: update_Application: {line.strip()}")
+                write_to_log(log_file, message, instance)
+                print("err:", line.strip())
+                error_messages = True
+            if error_messages:
+                return jsonify({'success': False, 'error': 'failed to update, check the log'})
 
             compare_config_files(instance, message,log_file)
 
