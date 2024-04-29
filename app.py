@@ -57,7 +57,7 @@ def get_data():
             except Exception as e:
                 message = (f"get_data: ERROR: I could not find the specified config file [ds_config_file]")
                 write_to_log(log_file, message, instance)
-                close_ssh_connect(log_file)
+                close_ssh_connect()
                 return jsonify({'error': 'config file not found'})
 
             commandline_data = instance['ds_start_command']
@@ -84,7 +84,7 @@ def get_data():
             write_to_log(log_file, message, instance)
 
             try:
-                close_ssh_connect(log_file)
+                close_ssh_connect()
 
             except:
                 pass
@@ -95,7 +95,7 @@ def get_data():
         message = (f"get_data: ERROR1 {str(e)}")
         write_to_log(log_file, message, instance)
 
-        close_ssh_connect(log_file)
+        close_ssh_connect()
         return jsonify({'error': 'Instance not found'})
 
 @app.route('/get_config', methods=['POST'])
@@ -135,7 +135,7 @@ def save_json():
                 instance_id = int(request.form['instance_id'])
                 instance = next((inst for inst in bot_instances['instances'] if inst['id'] == instance_id), None)
 
-                sftp_client, exec_client = ssh_connect(instance, log_file, globals.connected_instance)
+                sftp_client, exec_client = ssh_connect(instance, log_file)
 
                 config_file_path = instance['ds_config_file']
                 with sftp_client.open(config_file_path, 'w') as file:
@@ -222,7 +222,7 @@ def restart_application():
             #     print (commandlineData)
 
             #open connection to vps
-            sftp_client, exec_client = ssh_connect(instance, log_file, globals.connected_instance)
+            sftp_client, exec_client = ssh_connect(instance, log_file)
             #time.sleep(60)
 
             func_stop_application(exec_client, instance, log_file)
@@ -288,7 +288,7 @@ def update_application():
     instance = next((inst for inst in bot_instances['instances'] if inst['id'] == instance_id), None)
     if instance:
         try:
-            sftp_client, exec_client = ssh_connect(instance, log_file, globals.connected_instance)
+            sftp_client, exec_client = ssh_connect(instance, log_file)
 
             # SSH command to perform git pull
             git_pull_command = f"cd {instance['ds_location']} && git pull"
@@ -302,14 +302,15 @@ def update_application():
                 write_to_log(log_file, message, instance)
                 print("out:", line.strip())
 
-            for line in stderr:
-                #logger.critical(f"Error: {line.strip()}")
-                message = (f"ERROR: update_Application: {line.strip()}")
-                write_to_log(log_file, message, instance)
-                print("err:", line.strip())
-                error_messages = True
-            if error_messages:
-                return jsonify({'success': False, 'error': 'failed to update, check the log'})
+#TODO: need this for errors in git pull, but also gets hit with normal operation.
+            # for line in stderr:
+            #     #logger.critical(f"Error: {line.strip()}")
+            #     message = (f"ERROR: update_Application: {line.strip()}")
+            #     write_to_log(log_file, message, instance)
+            #     print("err:", line.strip())
+            #     error_messages = True
+            # if error_messages:
+            #     return jsonify({'success': False, 'error': 'failed to update, check the log'})
 
             compare_config_files(instance, message,log_file)
 

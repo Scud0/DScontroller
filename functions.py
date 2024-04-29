@@ -87,7 +87,7 @@ def ssh_connect(instance, log_file):
             #close the old connection
             #print ('close')
             #close_ssh_connect(sftp_client,exec_client,log_file)
-            close_ssh_connect(log_file)
+            close_ssh_connect()
 
         #start a new connection
         ssh_client = paramiko.SSHClient()
