@@ -286,6 +286,7 @@ def update_application():
     bot_instances = load_instances()
     instance_id = int(request.form['instance_id'])
     instance = next((inst for inst in bot_instances['instances'] if inst['id'] == instance_id), None)
+    requirements_updated = False
     if instance:
         try:
             sftp_client, exec_client = ssh_connect(instance, log_file)
@@ -300,7 +301,17 @@ def update_application():
                 #logger.critical(f"{line.strip()}")
                 message = (f"update_Application: {line.strip()}")
                 write_to_log(log_file, message, instance)
-                print("out:", line.strip())
+                #print("out:", line.strip())
+
+#TODO:
+                if "requirements.txt" in line.strip():
+                    #requirement updated
+                    requirements_updated = True
+
+                    #build a function that updates the requirements on the server.
+                    #1. exec_client.exec_command( cd to ds_location)
+                    #2. activate venv if its enabled.
+                    #3. pip install -r requirements.txt
 
 #TODO: need this for errors in git pull, but also gets hit with normal operation.
             # for line in stderr:
@@ -317,6 +328,9 @@ def update_application():
             get_data() #reload data after update
 
             write_to_log(log_file, f"update_application: update done", instance)
+            if requirements_updated:
+                write_to_log(log_file, f"update_application: WARNING: requirements have been updated. Update them on the server)", instance)
+
             write_to_log(log_file, f"update_application: don't forget to (re)start)", instance)
 
             return jsonify({'success': True})
