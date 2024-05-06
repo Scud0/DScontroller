@@ -23,6 +23,19 @@ log_file = open('log.log', 'a+')
 # Create a scheduler
 scheduler = sched.scheduler(time.time, time.sleep)
 
+
+def write_stdout(stdout, instance):
+    for line in stdout:
+        message = f"update_Application: {line.strip()}"
+        write_to_log(log_file, message, instance)
+
+def write_stderr(stderr, instance):
+    for line in stderr:
+        message = f"ERROR: update_Application: {line.strip()}"
+        write_to_log(log_file, message, instance)
+        print("err:", line.strip())
+    return True
+
 # Load instances from config.hjson
 def load_instances():
     try:
@@ -172,10 +185,11 @@ def close_ssh_connect():
             exec_client.close()
 
         instance = globals.connected_instance
-
         write_to_log(log_file, f"SSH connection closed", instance)
 
         globals.connected_instance = None
+        sftp_client = None
+        exec_client = None
         #print ('closed ssh connection')
         #return jsonify({'success': True}) #not allowed by flask to return outside application context.
 
@@ -193,50 +207,51 @@ def check_bot_running(exec_client, instance):
             bot_active = True
     return bot_active
 
-def compare_config_files(instance, message, log_file):
+def compare_config_files(instance):
     # Load the contents of the config files
 
-    if "Already up to date" not in message:
 
-        sftp_client, exec_client = ssh_connect(instance, log_file)
+#    if "Already up to date" not in lastmessage:
 
-        # Fetch the contents of the config.json file
-        stdin, stdout, stderr = exec_client.exec_command(f"cat {instance['ds_config_file']}")
-        config_data = json.loads(stdout.read().decode('utf-8'))
-        #print ("config\n")
-        #print (config_data)
+    sftp_client, exec_client = ssh_connect(instance, log_file)
 
-        stdin, stdout, stderr = exec_client.exec_command(f"cat {instance['ds_location']}configs/config_example.json")
-        example_data = json.loads(stdout.read().decode('utf-8'))
-        #print ("example\n")
-        #print (example_data)
+    # Fetch the contents of the config.json file
+    stdin, stdout, stderr = exec_client.exec_command(f"cat {instance['ds_config_file']}")
+    config_data = json.loads(stdout.read().decode('utf-8'))
+    #print ("config\n")
+    #print (config_data)
 
-        # Get the keys of each file
-        config_keys = set(config_data.keys())
-        example_keys = set(example_data.keys())
+    stdin, stdout, stderr = exec_client.exec_command(f"cat {instance['ds_location']}configs/config_example.json")
+    example_data = json.loads(stdout.read().decode('utf-8'))
+    #print ("example\n")
+    #print (example_data)
 
-        # Check for mismatched keys
-        mismatched_keys = config_keys.symmetric_difference(example_keys)
+    # Get the keys of each file
+    config_keys = set(config_data.keys())
+    example_keys = set(example_data.keys())
 
-        # If there are mismatched keys, do something
-        if mismatched_keys:
-            #print("Mismatched keys found:")
-            message = (f"update_Application: Mismatched config keys found:")
-            write_to_log(log_file, message, instance)
+    # Check for mismatched keys
+    mismatched_keys = config_keys.symmetric_difference(example_keys)
 
-            for key in mismatched_keys:
-                if key in config_keys:
-                    #print(f"Key '{key}' exists in config.json but not in config.example.json")
-                    message = (f"Key '{key}' exists in config.json but not in config.example.json")
-                    write_to_log(log_file, message, instance)
-                else:
-                    #print(f"Key '{key}' exists in config.example.json but not in config.json")
-                    message = (f"Key '{key}' exists in config.example.json but not in config.json")
-                    write_to_log(log_file, message, instance)
-        else:
-            #print("No mismatched keys found.")
-            message = (f"update_Application: all good, no config mismatches found")
-            write_to_log(log_file, message, instance)
+    # If there are mismatched keys, do something
+    if mismatched_keys:
+        #print("Mismatched keys found:")
+        message = (f"update_Application: Mismatched config keys found:")
+        write_to_log(log_file, message, instance)
+
+        for key in mismatched_keys:
+            if key in config_keys:
+                #print(f"Key '{key}' exists in config.json but not in config.example.json")
+                message = (f"Key '{key}' exists in config.json but not in config.example.json")
+                write_to_log(log_file, message, instance)
+            else:
+                #print(f"Key '{key}' exists in config.example.json but not in config.json")
+                message = (f"Key '{key}' exists in config.example.json but not in config.json")
+                write_to_log(log_file, message, instance)
+    else:
+        #print("No mismatched keys found.")
+        message = (f"update_Application: all good, no config mismatches found")
+        write_to_log(log_file, message, instance)
 
 def func_stop_application(exec_client, instance, log_file):
     #close tmux pane and bot

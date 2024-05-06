@@ -343,7 +343,7 @@ function updateApplication() {
             //alert('Git pull successful!');
             handleSuccess();
         } else {
-            alert('ERROR: ' + data.error);
+            alert('ERROR.99: update failed ' + data.error);
             handleError(data.error)
         }
     });

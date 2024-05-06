@@ -286,7 +286,10 @@ def update_application():
     bot_instances = load_instances()
     instance_id = int(request.form['instance_id'])
     instance = next((inst for inst in bot_instances['instances'] if inst['id'] == instance_id), None)
+
+#TODO: write the requirements_updated check
     requirements_updated = False
+
     if instance:
         try:
             sftp_client, exec_client = ssh_connect(instance, log_file)
@@ -295,39 +298,60 @@ def update_application():
             git_pull_command = f"cd {instance['ds_location']} && git pull"
 
             stdin, stdout, stderr = exec_client.exec_command(f"{git_pull_command}")
-            # for line in stdin:
-            #     print("in:", line.strip())
-            for line in stdout:
-                #logger.critical(f"{line.strip()}")
-                message = (f"update_Application: {line.strip()}")
-                write_to_log(log_file, message, instance)
-                #print("out:", line.strip())
 
-#TODO:
-                if "requirements.txt" in line.strip():
-                    #requirement updated
-                    requirements_updated = True
+            # Start threads to write stdout and stderr messages concurrently as they come in.
+            stdout_thread = threading.Thread(target=write_stdout, args=(stdout, instance))
+            stderr_thread = threading.Thread(target=write_stderr, args=(stderr, instance))
+
+            stdout_thread.start()
+            stderr_thread.start()
+
+            # Wait for the threads to complete
+            stdout_thread.join()
+            stderr_thread.join()
+
+            if write_stderr: #check if it returns True
+                print ("test")
+
+                write_to_log(log_file, f"ERROR3: update_application: update failed. check manually", instance)
+                return jsonify({'success': False, 'error3': 'update failed. check manually'})
+
+
+            # # for line in stdin:
+            # #     print("in:", line.strip())
+            # for line in stdout:
+            #     #logger.critical(f"{line.strip()}")
+            #     message = (f"update_Application: {line.strip()}")
+            #     write_to_log(log_file, message, instance)
+            #     #print("out:", line.strip())
+
+# #TODO:
+#                 if "requirements.txt" in line.strip():
+#                     #requirement updated
+#                     requirements_updated = True
+#                     write_to_log(log_file, f"update_application: WARNING: requirments updated", instance)
 
                     #build a function that updates the requirements on the server.
                     #1. exec_client.exec_command( cd to ds_location)
                     #2. activate venv if its enabled.
                     #3. pip install -r requirements.txt
 
-#TODO: need this for errors in git pull, but also gets hit with normal operation.
-            # for line in stderr:
-            #     #logger.critical(f"Error: {line.strip()}")
-            #     message = (f"ERROR: update_Application: {line.strip()}")
-            #     write_to_log(log_file, message, instance)
-            #     print("err:", line.strip())
-            #     error_messages = True
-            # if error_messages:
-            #     return jsonify({'success': False, 'error': 'failed to update, check the log'})
+# #TODO: need this for errors in git pull, but also gets hit with normal operation.
+#             for line in stderr:
+#                 #logger.critical(f"Error: {line.strip()}")
+#                 message = (f"ERROR: update_Application: {line.strip()}")
+#                 write_to_log(log_file, message, instance)
+#                 print("err:", line.strip())
+#                 error_messages = True
+#             if error_messages:
+#                 return jsonify({'success': False, 'error': 'failed to update, check the log'})
 
-            compare_config_files(instance, message,log_file)
+            compare_config_files(instance)
 
             get_data() #reload data after update
 
             write_to_log(log_file, f"update_application: update done", instance)
+
             if requirements_updated:
                 write_to_log(log_file, f"update_application: WARNING: requirements have been updated. Update them on the server)", instance)
 
@@ -335,11 +359,11 @@ def update_application():
 
             return jsonify({'success': True})
         except Exception as e:
-            write_to_log(log_file, f"update_application: ERROR: {str(e)}", instance)
-            return jsonify({'success': False, 'error': str(e)})
+            write_to_log(log_file, f"update_application: ERROR2: {str(e)}", instance)
+            return jsonify({'success': False, 'error2': str(e)})
     else:
-        write_to_log(log_file, f"update_application: ERROR: {str(e)}", instance)
-        return jsonify({'success': False, 'error': 'Instance not found'})
+        write_to_log(log_file, f"update_application: ERROR1: {str(e)}", instance)
+        return jsonify({'success': False, 'error1': 'Instance not found'})
 
 @app.route('/get_log')
 def get_log():
