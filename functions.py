@@ -11,13 +11,14 @@ import ast
 import globals
 import sched
 import threading
+import functools
 
 
 
 # import ALL, because of globals.
 # Global variables to store SSH clients
-sftp_client = None
-exec_client = None
+sftp_client = False
+exec_client = False
 log_file = open('log.log', 'a+')
 
 # Create a scheduler
@@ -100,7 +101,7 @@ def ssh_connect(instance, log_file):
             #close the old connection
             #print ('close')
             #close_ssh_connect(sftp_client,exec_client,log_file)
-            close_ssh_connect()
+            close_ssh_connect(sftp_client,exec_client)
 
         #start a new connection
         ssh_client = paramiko.SSHClient()
@@ -156,28 +157,30 @@ def ssh_connect(instance, log_file):
     return sftp_client, exec_client
 
 # Define a function to schedule the SSH connection closure
-def schedule_ssh_connection_closure(timeout, instance):
-    scheduler.enter(timeout, 1, close_ssh_connect)
+def schedule_ssh_connection_closure(timeout, instance, sftp_client, exec_client):
+    scheduler.enter(timeout, 1, functools.partial(close_ssh_connect, sftp_client, exec_client))
     write_to_log(log_file, f"SSH connection will be closed after {timeout} seconds of inactivity", instance)
     #print(f"SSH connection will be closed after {timeout} seconds.")
 
 # Define a function to start the scheduler in a separate thread
-def start_scheduler(timeout, instance):
+def start_scheduler(timeout, instance, sftp_client, exec_client):
     # Schedule the SSH connection closure
-    schedule_ssh_connection_closure(timeout, instance)
+    schedule_ssh_connection_closure(timeout, instance, sftp_client, exec_client)
     # Start the scheduler
     scheduler.run()
 
 # Call this function whenever you establish a new SSH connection
 def initiate_ssh_timeout_monitor(timeout, instance):
     # Create a new thread for the scheduler
-    thread = threading.Thread(target=start_scheduler, args=(timeout, instance,))
+    thread = threading.Thread(target=start_scheduler, args=(timeout, instance, sftp_client, exec_client, ))
     # Set the thread as a daemon so it terminates when the main thread exits
     thread.daemon = True
     # Start the thread
     thread.start()
 
-def close_ssh_connect():
+def close_ssh_connect(sftp_client, exec_client):
+    print (sftp_client)
+    print (exec_client)
     try:
         if sftp_client:
             sftp_client.close()
@@ -188,8 +191,8 @@ def close_ssh_connect():
         write_to_log(log_file, f"SSH connection closed", instance)
 
         globals.connected_instance = None
-        sftp_client = None
-        exec_client = None
+        sftp_client = False
+        exec_client = False
         #print ('closed ssh connection')
         #return jsonify({'success': True}) #not allowed by flask to return outside application context.
 
@@ -200,8 +203,20 @@ def close_ssh_connect():
 
 def check_bot_running(exec_client, instance):
     #verify if a proces of the bot is running
+
+
+    #pattern to find the used bot file .py based on the start command
+    pattern = r'\b([\w.-]+\.py)\b'
+    match = re.search(pattern, f"{instance['ds_start_command']}")
+    if match:
+        multibotfile = match.group(1)
+        print (f"active:{multibotfile}")
+    else:
+        print ("error in verify_application_active")
+
+
     bot_active = False
-    stdin, stdout, stderr = exec_client.exec_command(f"ps -u {instance['ssh_user']} -o command | grep -e 'multi_bot.py'")
+    stdin, stdout, stderr = exec_client.exec_command(f"ps -u {instance['ssh_user']} -o command | grep -e {multibotfile}")
     for line in stdout:
         if not 'bash' in line and not 'grep -e' in line:
             bot_active = True
@@ -328,9 +343,21 @@ def func_start_application(exec_client, instance, bot_active, log_file, commandl
         time.sleep(1)
 
 def verify_application_active(exec_client, instance, log_file):
+
+#TODO: NOT IN USE?
+
+    #pattern to find the used bot file .py based on the start command
+    pattern = r'\b([\w.-]+\.py)\b'
+    match = re.search(pattern, f"{instance['ds_start_command']}")
+    if match:
+        multibotfile = match.group(1)
+        print (f"active:{multibotfile}")
+    else:
+        print ("error in verify_application_active")
+
     #verify if no proces of the bot is stil running
     bot_active = False
-    stdin, stdout, stderr = exec_client.exec_command(f"ps -u {instance['ssh_user']} -o command | grep -e 'multi_bot.py'")
+    stdin, stdout, stderr = exec_client.exec_command(f"ps -u {instance['ssh_user']} -o command | grep -e '{multibotfile}'")
     for line in stdout:
         if not 'bash' in line and not 'grep -e' in line:
             bot_active = True
@@ -391,15 +418,21 @@ def find_strategies_in_multibot(instance, exec_client, log_file):
     # Initialize an empty list to store the strategies
     strategies = []
 
-    multibotfile = f"{instance['ds_location']}multi_bot.py"
-
-
+    #pattern to find the used bot file .py based on the start command
+    pattern = r'\b([\w.-]+\.py)\b'
+    match = re.search(pattern, f"{instance['ds_start_command']}")
+    if match:
+        multibotfile = f"{instance['ds_location']}" + match.group(1)
+        print (multibotfile)
+    else:
+        print ("error in find_strategies_in_multibot")
 
     # Execute the command to read the file contents
     _, stdout, _ = exec_client.exec_command(f"cat {multibotfile}")
 
     # Read the output from the command
     file_contents = stdout.read().decode('utf-8')  # Decode bytes to string
+    #print (file_contents)
 
     tree = ast.parse(file_contents, filename=multibotfile)
 
